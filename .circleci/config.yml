@@ -15,6 +15,10 @@ jobs:
       - run: "bundle install --path vendor/bundle --full-index"
       - run: "bundle exec pod repo add douwebos https://github.com/DouweBos/DJB-Pod-Specs"
       - run: 
+          command: "bundle exec bundle exec fastlane validate"
+          name: Fastlane
+          no_output_timeout: 30m
+      - run: 
           command: "bundle exec bundle exec fastlane release"
           name: Fastlane
           no_output_timeout: 30m
