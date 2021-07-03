@@ -1,0 +1,108 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:ios)
+
+def versioned_commit(podspec)
+  version = version_get_podspec(path: podspec)
+
+  if git_tag_exists(tag: version)
+    bump(podspec)
+    versioned_commit(podspec)
+  else
+    add_git_tag(
+      tag: version
+    )
+
+    push_to_git_remote(force: true)
+  end
+end
+
+def bump(podspec)
+  version = version_bump_podspec(path: podspec, bump_type: "patch")
+
+  git_commit_message = "[ci skip]" + podspec + " - Fastlane Version Bump - Version: " + version
+  git_commit(path: [podspec],
+             message: git_commit_message)
+
+  push_to_git_remote(force: true)
+end
+
+def push_podspec(podspec)
+  pod_push(path: podspec, 
+           repo: "douwebos", 
+           sources: ["https://github.com/DouweBos/DJB-Pod-Specs", "https://cdn.cocoapods.org/"],
+           allow_warnings: true
+          )
+end
+
+platform :ios do
+  before_all do
+    setup_circle_ci
+  end
+
+  desc "Push a Elfo version to DouweBos Pod Specs"
+  lane :release do
+    podspec = "Elfo.podspec"
+    versioned_commit(podspec)
+
+    push_podspec(podspec)
+
+    version = version_get_podspec(path: podspec)
+
+    slack(
+      slack_url: ENV["DOUWE_BOS_SLACK_COCOAPODS"].to_s,
+      message: "*Elfo Version #{version}* is now available.",
+      success: true,
+      default_payloads: [:git_branch, :last_git_commit_message]
+    )
+  end
+
+  desc "Validate Elfo pod spec"
+  lane :validate do
+    sh('bundle exec pod lib lint ../Elfo.podspec --sources="https://github.com/DouweBos/DJB-Pod-Specs","https://cdn.cocoapods.org/" --allow-warnings')
+  end
+
+  before_each do |lane, options|
+    # send slack start notification
+    slack(
+        message: "Elfo - Lane: *#{lane}* started",
+        slack_url: ENV["DOUWE_BOS_SLACK_COCOAPODS"].to_s,
+        success: true,
+        default_payloads: [:git_branch, :last_git_commit_message]
+    )
+  end
+
+  after_each do |lane, options|
+    # send slack end notification
+    slack(
+        message: "Elfo - Lane: *#{lane}* finished",
+        slack_url: ENV["DOUWE_BOS_SLACK_COCOAPODS"].to_s,
+        success: true,
+        default_payloads: [:git_branch, :last_git_commit_message]
+    )
+  end
+
+  error do |lane, exception, options|
+    # send slack failure notification
+    slack(
+        message: "Elfo - Lane: *#{lane}* failed with exception: #{exception}",
+        slack_url: ENV["DOUWE_BOS_SLACK_COCOAPODS"].to_s,
+        success: false,
+        default_payloads: [:git_branch, :last_git_commit_message]
+    )
+  end
+
+end

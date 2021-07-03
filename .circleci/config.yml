@@ -1,0 +1,57 @@
+version: 2.1
+jobs: 
+  push_pod_spec: 
+    macos: 
+      xcode: "12.0.0"
+    shell: "/bin/bash --login -o pipefail"
+    steps: 
+      - checkout
+      - run: git config user.email "douwe@douwebos.nl"
+      - run: git config user.name "Douwe Bos"
+      - run:
+          name: Install Dependencies
+          command: |
+            gem install bundler -v 1.17.2
+      - run: "bundle install --path vendor/bundle --full-index"
+      - run: "bundle exec pod repo add douwebos https://github.com/DouweBos/DJB-Pod-Specs"
+      - run: 
+          command: "bundle exec bundle exec fastlane release"
+          name: Fastlane
+          no_output_timeout: 30m
+    working_directory: /Users/distiller/project
+  validate_pod_spec: 
+    macos: 
+      xcode: "12.0.0"
+    shell: "/bin/bash --login -o pipefail"
+    steps: 
+      - checkout
+      - run: git config user.email "douwe@douwebos.nl"
+      - run: git config user.name "Douwe Bos"
+      - run:
+          name: Install Dependencies
+          command: |
+            gem install bundler -v 1.17.2
+      - run: "bundle install --path vendor/bundle --full-index"
+      - run: "bundle exec pod repo add douwebos https://github.com/DouweBos/DJB-Pod-Specs"
+      - run: 
+          command: "bundle exec bundle exec fastlane validate"
+          name: Fastlane
+          no_output_timeout: 30m
+    working_directory: /Users/distiller/project
+workflows: 
+  build_push: 
+    jobs:
+      - push_pod_spec: 
+          filters: 
+            tags:
+              ignore: /.*/
+            branches:
+              only: 
+                - master
+      - validate_pod_spec: 
+          filters: 
+            tags:
+              ignore: /.*/
+            branches:
+              only: 
+                - development

@@ -1,0 +1,23 @@
+PODS:
+  - CocoaAsyncSocket (7.6.4)
+  - Elfo (0.1.0):
+    - CocoaAsyncSocket
+
+DEPENDENCIES:
+  - Elfo (from `../`)
+
+SPEC REPOS:
+  trunk:
+    - CocoaAsyncSocket
+
+EXTERNAL SOURCES:
+  Elfo:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  CocoaAsyncSocket: 694058e7c0ed05a9e217d1b3c7ded962f4180845
+  Elfo: 8c97bca36da6b01f3d26be2e095d412e0425c415
+
+PODFILE CHECKSUM: d238409943cae382c6c27c123c333020c797af6d
+
+COCOAPODS: 1.10.1
