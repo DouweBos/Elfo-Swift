@@ -61,7 +61,8 @@ internal extension Decodable {
         do {
             return try JSONDecoder().decode(self, from: data)
         } catch {
-            print(error.localizedDescription)
+            Beaver.error(error, context: self)
+
             return nil
         }
     }

@@ -40,7 +40,7 @@ extension ElfoController: ElfoDiscoveryDelegate {
 
 extension ElfoController: ElfoPublisherDelegate {
     private func parse(body: Data) {
-        print(body.asString)
+        Beaver.info(body.asString, context: self)
     }
     
     func didReceive(data: Data) {

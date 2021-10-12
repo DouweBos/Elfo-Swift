@@ -6,6 +6,9 @@
 //
 
 import Foundation
+import SwiftyBeaver
+
+typealias Beaver = SwiftyBeaver
 
 public struct Elfo {
     public struct Configuration {

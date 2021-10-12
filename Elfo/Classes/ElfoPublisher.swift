@@ -17,6 +17,9 @@ class ElfoPublisher: NSObject {
     
     weak var delegate: ElfoPublisherDelegate? = nil
     
+    private let socketReadWriteLock = ReadWriteLock(label: "com.djbsoftware.elfo.publisher.sockets")
+    private let publishQueue = DispatchQueue(label: "com.djbsoftware.elfo.publisher.queue")
+    
     private var sockets: [GCDAsyncSocket] = []
     
     init(config: Elfo.Configuration) {
@@ -26,8 +29,12 @@ class ElfoPublisher: NSObject {
     }
     
     func publish(data: Data?) {
-        sockets.forEach { sock in
-            sock.write(data, withTimeout: -1.0, tag: 0)
+        publishQueue.sync {
+            socketReadWriteLock.read {
+                sockets.forEach { sock in
+                    sock.write(data, withTimeout: -1.0, tag: 0)
+                }
+            }
         }
     }
 }
@@ -40,19 +47,23 @@ extension ElfoPublisher {
         
         guard !addresses.isEmpty else { return false }
         
-        let socket = GCDAsyncSocket(delegate: self,
-                                    delegateQueue: DispatchQueue.main
+        let socket = GCDAsyncSocket(
+            delegate: self,
+            delegateQueue: DispatchQueue.main
         )
         
         while !_isConnected {
             if let address = addresses.first {
                 do {
                     try socket.connect(toAddress: address)
-                    sockets.append(socket)
+                    
+                    socketReadWriteLock.write {
+                        sockets.append(socket)
+                    }
                     
                     _isConnected = true
-                } catch let error {
-                    print(error)
+                } catch {
+                    Beaver.error(error, context: self)
                 }
             }
         }
@@ -65,12 +76,15 @@ extension ElfoPublisher: GCDAsyncSocketDelegate {
     func socketDidDisconnect(_ sock: GCDAsyncSocket, withError err: Error?) {
         sock.delegate = nil
         
-        self.sockets = Array(self.sockets.filter { $0 !== sock })
+        socketReadWriteLock.write {
+            self.sockets = Array(self.sockets.filter { $0 !== sock })
+        }
     }
     
     func socket(_ sock: GCDAsyncSocket, didConnectToHost host: String, port: UInt16) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let strongSelf = self else { return }
+            
             let rawData: [String: Any?] = [
                 "project": strongSelf.config.project,
                 "deviceId": strongSelf.config.device,
@@ -82,13 +96,18 @@ extension ElfoPublisher: GCDAsyncSocketDelegate {
             }
         }
         
-        sock.readData(withTimeout: -1.0, tag: 0)
+        sock.readData(
+            withTimeout: -1.0,
+            tag: 0
+        )
     }
     
     func socket(_ sock: GCDAsyncSocket, didRead data: Data, withTag tag: Int) {
         self.delegate?.didReceive(data: data)
-        sock.readData(withTimeout: -1.0,
-                      tag: tag
+        
+        sock.readData(
+            withTimeout: -1.0,
+            tag: tag
         )
     }
 }

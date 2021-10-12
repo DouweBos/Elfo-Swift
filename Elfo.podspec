@@ -35,5 +35,6 @@ Consider this an offline version of Mixpanel's "live view".
   s.subspec 'Core' do |ss|
     ss.dependency 'CocoaAsyncSocket'
     ss.dependency 'DJBExtensionKit/Core'
+    ss.dependency 'SwiftyBeaver'
   end
 end

@@ -170,7 +170,7 @@ extension Interpose {
     /// Simple log wrapper for print.
     class func log(_ object: Any) {
         if isLoggingEnabled {
-            print("[Interposer] \(object)")
+            Beaver.debug("[Interposer] \(object)", context: self)
         }
     }
 }
